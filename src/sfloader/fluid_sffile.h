@@ -149,6 +149,7 @@ struct _SFData
 
     char *fname; /* file name */
     FILE *sffd; /* loaded sfont file descriptor */
+    const void* mmap;
     const fluid_file_callbacks_t *fcbs; /* file callbacks used to read this file */
 
     fluid_rec_mutex_t mtx; /* this mutex can be used to synchronize calls to fcbs when using multiple threads (e.g. SF3 loading) */

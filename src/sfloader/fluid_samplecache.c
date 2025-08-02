@@ -53,6 +53,7 @@ struct _fluid_samplecache_entry_t
 
     int num_references;
     int mlocked;
+    int mmapped;
 };
 
 static fluid_list_t *samplecache_list = NULL;
@@ -219,6 +220,7 @@ static fluid_samplecache_entry_t *new_samplecache_entry(SFData *sf,
     entry->sample_end = sample_end;
     entry->sample_type = sample_type;
     entry->modification_time = mtime;
+    entry->mmapped = sf->mmap != 0;
 
     entry->sample_count = fluid_sffile_read_sample_data(sf, sample_start, sample_end, sample_type,
                           &entry->sample_data, &entry->sample_data24);
@@ -240,8 +242,11 @@ static void delete_samplecache_entry(fluid_samplecache_entry_t *entry)
     fluid_return_if_fail(entry != NULL);
 
     FLUID_FREE(entry->filename);
-    FLUID_FREE(entry->sample_data);
-    FLUID_FREE(entry->sample_data24);
+    if (!entry->mmapped)
+    {
+        FLUID_FREE(entry->sample_data);
+        FLUID_FREE(entry->sample_data24);
+    }
     FLUID_FREE(entry);
 }
 

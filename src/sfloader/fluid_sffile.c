@@ -2286,12 +2286,18 @@ static int fluid_sffile_read_wav(SFData *sf, unsigned int start, unsigned int en
 
     fluid_rec_mutex_lock(sf->mtx);
 
-    /* Load 16-bit sample data */
-    if(sf->fcbs->fseek(sf->sffd, sf->samplepos + (start * sizeof(short)), SEEK_SET) == FLUID_FAILED)
+    if (sf->mmap)
     {
-        FLUID_LOG(FLUID_ERR, "Failed to seek to sample position");
-        goto error_exit_unlock;
+        loaded_data = (short*)sf->mmap + start;
     }
+    else
+    {
+        /* Load 16-bit sample data */
+        if (sf->fcbs->fseek(sf->sffd, sf->samplepos + (start * sizeof(short)), SEEK_SET) == FLUID_FAILED)
+        {
+            FLUID_LOG(FLUID_ERR, "Failed to seek to sample position");
+            goto error_exit_unlock;
+        }
 
     loaded_data = FLUID_ARRAY(short, num_samples);
     if(loaded_data == NULL)
@@ -2311,8 +2317,9 @@ static int fluid_sffile_read_wav(SFData *sf, unsigned int start, unsigned int en
                       "You need to use at least fluidsynth 2.2.0");
         }
 #endif
-        FLUID_LOG(FLUID_ERR, "Failed to read sample data");
-        goto error_exit_unlock;
+            FLUID_LOG(FLUID_ERR, "Failed to read sample data");
+            goto error_exit_unlock;
+        }
     }
 
     fluid_rec_mutex_unlock(sf->mtx);
@@ -2341,12 +2348,18 @@ static int fluid_sffile_read_wav(SFData *sf, unsigned int start, unsigned int en
             goto error24_exit;
         }
 
-        loaded_data24 = FLUID_ARRAY(char, num_samples);
-        if(loaded_data24 == NULL)
+        if (sf->mmap)
         {
-            FLUID_LOG(FLUID_ERR, "Out of memory reading 24-bit sample data");
-            goto error24_exit;
+            loaded_data24 = (char*)sf->mmap + start;
         }
+        else
+        {
+            loaded_data24 = FLUID_ARRAY(char, num_samples);
+            if (loaded_data24 == NULL)
+            {
+                FLUID_LOG(FLUID_ERR, "Out of memory reading 24-bit sample data");
+                goto error24_exit;
+            }
 
         fluid_rec_mutex_lock(sf->mtx);
 
@@ -2356,10 +2369,11 @@ static int fluid_sffile_read_wav(SFData *sf, unsigned int start, unsigned int en
             goto error24_exit_unlock;
         }
 
-        if(sf->fcbs->fread(loaded_data24, num_samples, sf->sffd) == FLUID_FAILED)
-        {
-            FLUID_LOG(FLUID_ERR, "Failed to read 24-bit sample data");
-            goto error24_exit_unlock;
+            if (sf->fcbs->fread(loaded_data24, num_samples, sf->sffd) == FLUID_FAILED)
+            {
+                FLUID_LOG(FLUID_ERR, "Failed to read 24-bit sample data");
+                goto error24_exit_unlock;
+            }
         }
 
         fluid_rec_mutex_unlock(sf->mtx);

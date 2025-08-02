@@ -103,6 +103,7 @@ struct _fluid_defsfont_t
 {
     const fluid_file_callbacks_t *fcbs; /* the file callbacks used to load this Soundfont */
     char *filename;           /* the filename of this soundfont */
+    const void* mmap;
     unsigned int samplepos;   /* the position in the file at which the sample data starts */
     unsigned int samplesize;  /* the size of the sample data in bytes */
     short *sampledata;        /* the sample data, loaded in ram */
@@ -118,6 +119,7 @@ struct _fluid_defsfont_t
     fluid_mod_t *default_mod_list;  /* the default modulator list of this soundfont */
     int mlock;                      /* Should we try memlock (avoid swapping)? */
     int dynamic_samples;            /* Enables dynamic sample loading if set */
+    int enable_mmap;                /* Enables memory mapping if set */
 
     fluid_list_t *preset_iter_cur;       /* the current preset in the iteration */
 };

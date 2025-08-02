@@ -215,6 +215,9 @@ fluid_defsfont_t *new_fluid_defsfont(fluid_settings_t *settings)
 
     fluid_settings_getint(settings, "synth.lock-memory", &defsfont->mlock);
     fluid_settings_getint(settings, "synth.dynamic-sample-loading", &defsfont->dynamic_samples);
+    fluid_settings_getint(settings, "synth.mmap", &defsfont->enable_mmap);
+    if (defsfont->enable_mmap)
+        defsfont->mlock = 0;
 
     return defsfont;
 }
@@ -430,7 +433,8 @@ int fluid_defsfont_load_all_sampledata(fluid_defsfont_t *defsfont, SFData *sfdat
                         invalid_loops_were_sanitized = TRUE;
                     }
                 }
-                fluid_voice_optimize_sample(sample);
+                if (!defsfont->mmap)
+                    fluid_voice_optimize_sample(sample);
             }
         }
     }
@@ -475,7 +479,15 @@ int fluid_defsfont_load(fluid_defsfont_t *defsfont, const fluid_file_callbacks_t
     /* The actual loading is done in the sfont and sffile files */
     sfdata = fluid_sffile_open(file, fcbs);
 
-    if(sfdata == NULL)
+    if (defsfont->enable_mmap)
+    {
+        sfdata->mmap = mmap(NULL, sfdata->filesize, PROT_READ, MAP_SHARED, fileno(sfdata->sffd), 0);
+        sfdata->sample24pos = 0;
+        sfdata->sample24size = 0;
+        defsfont->mmap = sfdata->mmap;
+    }
+
+    if (sfdata == NULL)
     {
         /* error message already printed */
         return FLUID_FAILED;
